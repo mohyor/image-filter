@@ -1,6 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import { Router, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import {filterImageFromURL, deleteLocalFiles} from './util/util';
 
 (async () => {
@@ -31,18 +31,36 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   /**************************************************************************** */
 
   //! END @TODO1
-  app.get( "/filteredimage", async ( req:Request, res:Response ) => {
-    let image_url:string  = req.query.image_url.toString();
+  app.get( "/filteredimage", async (req: Request, res: Response) => {
+    
+    // Obtaining the image url in string format.
+    const image_url : string  = req.query.image_url.toString();
 
-    if(!image_url) res.status(400).send("Image URL (image_url) is required")
+    // Validating the image url.
+    if(!image_url || image_url === null) {
+     
+      // Sending the resulting file in the response.
+      return res.status(400).send("Image url is missing or broken.");
+    }
 
-    let filtered_image = await filterImageFromURL(image_url)
+    try {
 
-    res.status(200).sendFile(filtered_image, () => {
-      deleteLocalFiles([filtered_image]);
-    })
+      // Retrieving the filtered image from the "image_url".
+      const filtered_image = await filterImageFromURL(image_url);
+
+      return res.status(200).sendFile(filtered_image, function () {
+
+        // Deleting any files on the server after the request.
+        deleteLocalFiles([filtered_image]);
+      });
+    }
+
+    catch(e) {
+      
+      return res.status(422).send("Failed to filter image, Error: " + e);
+    }
   });
-  
+
   // Root Endpoint
   // Displays a simple message to the user
   app.get( "/", async ( req, res ) => {
